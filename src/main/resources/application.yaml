@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: jwt-demo
+  output:
+    ansi:
+      enabled: always
