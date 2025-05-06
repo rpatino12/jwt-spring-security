@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,15 +23,15 @@ public class TokenService {
     // This method will create the JWT Token
     public String generateToken(Authentication authentication) {
         Instant now = Instant.now();
-        String scope = authentication.getAuthorities().stream()
+        List<String> roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(" "));
+                .collect(Collectors.toList());
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
                 .expiresAt(now.plus(1, ChronoUnit.HOURS))
                 .subject(authentication.getName())
-                .claim("scope", scope)
+                .claim("roles", roles)
                 .build();
         return this.encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
