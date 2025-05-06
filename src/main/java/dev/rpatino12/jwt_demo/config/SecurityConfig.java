@@ -16,6 +16,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -66,12 +68,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JdbcUserDetailsManager userDetailsManager(DataSource dataSource) {
+    public JdbcUserDetailsManager userDetailsManager(DataSource dataSource, PasswordEncoder encoder) {
         JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
         // I can also create users from here
         UserDetails admin = User.builder()
                 .username("joe")
-                .password("{bcrypt}$2a$10$XlkdPQQhYcolx8bgp6nL3uNvDs8ZwDXA4KFaDencZsIhjMQO3j5lq")
+                .password(encoder.encode("my_super_secret_password"))
                 .roles("USER", "ADMIN")
                 .build();
         jdbcUserDetailsManager.createUser(admin);
@@ -100,5 +102,10 @@ public class SecurityConfig {
         JWK jwk = new RSAKey.Builder(rsaKeyProperties.publicKey()).privateKey(rsaKeyProperties.privateKey()).build();
         JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
         return new NimbusJwtEncoder(jwkSource);
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
