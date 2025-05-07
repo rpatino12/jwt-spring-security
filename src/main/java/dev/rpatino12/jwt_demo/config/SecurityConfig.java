@@ -26,8 +26,13 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -45,6 +50,7 @@ public class SecurityConfig {
         http
                 // To avoid csrf attack, never disable csrf protection while leaving session management enabled (line 24)
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults()) // By default, uses a bean by the name of CorsConfigurationSource
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()
@@ -65,6 +71,20 @@ public class SecurityConfig {
                 )
                 .httpBasic(Customizer.withDefaults());
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Let's say we want our frontend application is running in the same domain but in a different port 5173,
+        // and we want it to be able to access to our APIs in the backend running in port 8080
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedMethods(Arrays.asList("GET","POST"));
+        configuration.setAllowedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
