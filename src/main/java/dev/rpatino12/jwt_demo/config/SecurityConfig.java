@@ -6,6 +6,7 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import dev.rpatino12.jwt_demo.service.JpaUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -14,8 +15,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -24,13 +23,11 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,9 +37,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final RsaKeyProperties rsaKeyProperties;
+    private final JpaUserDetailsService jpaUserDetailsService;
 
-    public SecurityConfig(RsaKeyProperties rsaKeyProperties) {
+    public SecurityConfig(RsaKeyProperties rsaKeyProperties, JpaUserDetailsService jpaUserDetailsService) {
         this.rsaKeyProperties = rsaKeyProperties;
+        this.jpaUserDetailsService = jpaUserDetailsService;
     }
 
     @Bean
@@ -52,9 +51,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults()) // By default, uses a bean by the name of CorsConfigurationSource
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/h2-console/**", "/api/users").permitAll()
                         .anyRequest().authenticated()
                 )
+                .userDetailsService(jpaUserDetailsService)
                 // In order to properly load the h2-console, we have to disable the frame options
                 .headers(headers -> headers
                         .frameOptions(Customizer.withDefaults())
@@ -85,19 +85,6 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    @Bean
-    public JdbcUserDetailsManager userDetailsManager(DataSource dataSource, PasswordEncoder encoder) {
-        JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
-        // I can also create users from here
-        UserDetails admin = User.builder()
-                .username("joe")
-                .password(encoder.encode("my_super_secret_password"))
-                .roles("USER", "ADMIN")
-                .build();
-        jdbcUserDetailsManager.createUser(admin);
-        return jdbcUserDetailsManager;
     }
 
     @Bean

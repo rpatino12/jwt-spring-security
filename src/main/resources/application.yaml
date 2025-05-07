@@ -11,7 +11,12 @@ spring:
       enabled: true
   jpa:
     hibernate:
-      ddl-auto: none
+#      Here Hibernate will create the DB Table just by reading the entity classes
+      ddl-auto: create
+  sql:
+    init:
+#      Here we stopped Spring to initialize the database using the script files 'data.sql' and 'schema.sql'
+      mode: never
 
 rsa:
   private-key: classpath:certs/private.pem
